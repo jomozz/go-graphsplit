@@ -132,7 +132,14 @@ func BuildIpldGraph(ctx context.Context, fileList []Finfo, graphName, parentPath
 		cb.OnError(err)
 		return
 	}
-	cb.OnSuccess(node, graphName, fsDetail)
+	cb.OnSuccess(node, graphName, parseJsonDetail(fsDetail))
+}
+
+func parseJsonDetail(jsonStr string) string{
+	if strings.Contains(jsonStr, "\"") {
+		jsonStr = strings.ReplaceAll(jsonStr, "\"", "\"\"")
+	}
+	return fmt.Sprintf("\"%s\"",jsonStr)
 }
 
 func buildIpldGraph(ctx context.Context, fileList []Finfo, parentPath, carDir string, parallel int) (ipld.Node, string, error) {
@@ -428,6 +435,7 @@ func GenGraphName(graphName string, sliceCount, sliceTotal int) string {
 
 func GetGraphCount(args []string, sliceSize int64) int {
 	list, err := GetFileList(args)
+	fmt.Printf("args : %v \n", args)
 	if err != nil {
 		panic(err)
 	}
