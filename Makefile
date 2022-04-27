@@ -1,6 +1,6 @@
 .PHONY: build
 build:
-	go build -ldflags "-s -w" -o graphsplit ./cmd/graphsplit/main.go
+	go build -ldflags "-s -w" -o graphsplit ./cmd/graphsplit/
 
 
 ## FFI

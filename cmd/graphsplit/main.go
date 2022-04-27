@@ -10,6 +10,8 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/xerrors"
+
+	"github.com/docker/go-units"
 )
 
 var log = logging.Logger("graphsplit")
@@ -21,6 +23,7 @@ func main() {
 		restoreCmd,
 		commpCmd,
 		importDatasetCmd,
+		clientCmd,
 	}
 
 	app := &cli.App{
@@ -39,10 +42,10 @@ var chunkCmd = &cli.Command{
 	Name:  "chunk",
 	Usage: "Generate CAR files of the specified size",
 	Flags: []cli.Flag{
-		&cli.Uint64Flag{
+		&cli.StringFlag{
 			Name:  "slice-size",
-			Value: 17179869184, // 16G
-			Usage: "specify chunk piece size",
+			Value: "16GiB", // 16G
+			Usage: "specify chunk piece size,KiB Mib GiB etc. (also can use in bytes)",
 		},
 		&cli.UintFlag{
 			Name:  "parallel",
@@ -78,7 +81,10 @@ var chunkCmd = &cli.Command{
 	Action: func(c *cli.Context) error {
 		ctx := context.Background()
 		parallel := c.Uint("parallel")
-		sliceSize := c.Uint64("slice-size")
+		sliceSize, err := units.RAMInBytes(c.String("slice-size"))
+		if err != nil {
+			return xerrors.Errorf("Unexpected! slice-size set err")
+		}
 		parentPath := c.String("parent-path")
 		carDir := c.String("car-dir")
 		if !graphsplit.ExistDir(carDir) {

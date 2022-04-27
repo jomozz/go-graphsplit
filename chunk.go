@@ -3,8 +3,10 @@ package graphsplit
 import (
 	"context"
 	"fmt"
+	"github.com/xuri/excelize/v2"
 	"os"
 	"path"
+	"path/filepath"
 	"time"
 
 	ipld "github.com/ipfs/go-ipld-format"
@@ -32,33 +34,37 @@ func (cc *commPCallback) OnSuccess(node ipld.Node, graphName, fsDetail string) {
 	}
 	log.Infof("calculation of pieceCID completed, time elapsed: %s", time.Now().Sub(commpStartTime))
 	// Add node inof to manifest.csv
-	manifestPath := path.Join(cc.carDir, "manifest.csv")
-	_, err = os.Stat(manifestPath)
-	if err != nil && !os.IsNotExist(err) {
-		log.Fatal(err)
+	manifestPath := path.Join(cc.carDir, "manifest.xlsx")
+	sheetname := "Sheet1"
+	f, err := excelize.OpenFile(manifestPath)
+	if os.IsNotExist(err) {
+		f = excelize.NewFile()
+		index := f.NewSheet(sheetname)
+		f.SetActiveSheet(index)
+		f.SetSheetRow(sheetname, "A1", &[]interface{}{"playload_cid","filename","piece_id","piece_size","car_file_path","miner_id","duration","deal_proposal_id","deal_type"})
 	}
-	var isCreateAction bool
-	if err != nil && os.IsNotExist(err) {
-		isCreateAction = true
-	}
-	f, err := os.OpenFile(manifestPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	defer f.Close()
+	abscarfile, err := filepath.Abs(carfilepath)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer f.Close()
-	if isCreateAction {
-		if _, err := f.Write([]byte("playload_cid,filename,piece_cid,piece_size,detail\n")); err != nil {
-			log.Fatal(err)
-		}
-	}
-	if _, err := f.Write([]byte(fmt.Sprintf("%s,%s,%s,%d,%s\n", node.Cid(), graphName, cpRes.Root.String(), cpRes.Size, fsDetail))); err != nil {
+	rows, err := f.GetRows(sheetname)
+	if err != nil {
 		log.Fatal(err)
 	}
+	values := &[]interface{}{node.Cid(), graphName, cpRes.Root.String(), cpRes.Size, abscarfile, 0, 0, 0, "offline"}
+	err = f.SetSheetRow(sheetname, fmt.Sprintf("A%d", len(rows) + 1), values)
+	if err != nil {
+		return
+	}
+	f.SaveAs(manifestPath)
 }
 
 func (cc *commPCallback) OnError(err error) {
 	log.Fatal(err)
 }
+
+var _ GraphBuildCallback = &commPCallback{}
 
 type csvCallback struct {
 	carDir string
@@ -94,12 +100,16 @@ func (cc *csvCallback) OnError(err error) {
 	log.Fatal(err)
 }
 
+var _ GraphBuildCallback = &csvCallback{}
+
 type errCallback struct{}
 
 func (cc *errCallback) OnSuccess(ipld.Node, string, string) {}
 func (cc *errCallback) OnError(err error) {
 	log.Fatal(err)
 }
+
+var _ GraphBuildCallback = &errCallback{}
 
 func CommPCallback(carDir string) GraphBuildCallback {
 	return &commPCallback{carDir: carDir}
