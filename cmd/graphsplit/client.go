@@ -155,7 +155,6 @@ var importCmd = &cli.Command{
 
 		}
 		f.Save()
-		log.Infof("Send deals end =========>")
 		return nil
 
 	},
@@ -238,8 +237,9 @@ func sendVerifiedDeal(cctx *cli.Context, fromAddr, dataCid, pieceCid, minerId, d
 	if err != nil {
 		return "", xerrors.Errorf("get encoder err : %v ", err)
 	}
-
-	return encoder.Encode(*proposal), nil
+	proposeId := encoder.Encode(*proposal)
+	log.Infof("Send deal successfully proposal id : ", proposeId)
+	return proposeId, nil
 
 }
 
