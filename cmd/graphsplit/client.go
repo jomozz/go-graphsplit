@@ -169,15 +169,14 @@ func sendVerifiedDeal(cctx *cli.Context, fromAddr, dataCid, pieceCid, minerId, d
 	if err != nil {
 		return "", xerrors.Errorf("failed to parse 'from' address: %w", err)
 	}
-
-	//// Check if the address is a verified client
-	//dcap, err := api.StateVerifiedClientStatus(ctx, addr, types.EmptyTSK)
-	//if err != nil {
-	//	return "", xerrors.Errorf("Verified client status err: %v ", err)
-	//}
-	//if dcap == nil {
-	//	return "", xerrors.Errorf("address : %v is not a verified client ", fromAddr)
-	//}
+	// Check if the address is a verified client
+	dcap, err := api.StateVerifiedClientStatus(ctx, addr, types.EmptyTSK)
+	if err != nil {
+		return "", xerrors.Errorf("Verified client status err: %v ", err)
+	}
+	if dcap == nil {
+		return "", xerrors.Errorf("address : %v is not a verified client ", fromAddr)
+	}
 
 	if abi.ChainEpoch(dur) < build.MinDealDuration {
 		return "", xerrors.Errorf("minimum deal duration is %d blocks", build.MinDealDuration)
@@ -218,7 +217,7 @@ func sendVerifiedDeal(cctx *cli.Context, fromAddr, dataCid, pieceCid, minerId, d
 		MinBlocksDuration:  dur,
 		DealStartEpoch:     0,
 		FastRetrieval:      true,
-		VerifiedDeal:       false,
+		VerifiedDeal:       true,
 		ProviderCollateral: big.NewInt(0),
 	}
 
